@@ -130,8 +130,8 @@ def process_order(content):
     g.session.execute(stmt)  # where session has already been defined
   
     #3. Create derived order
-    if order['buy_amount'] > m_sell_amount:
-        d_order_obj = Order(  sender_pk=order_obj.sender_pk,
+    if order_obj.buy_amount > m_sell_amount:
+        d_order_obj = Order(sender_pk=order_obj.sender_pk,
                             receiver_pk=order_obj.receiver_pk, 
                             buy_currency=order_obj.buy_currency, 
                             sell_currency=order_obj.sell_currency, 
@@ -142,7 +142,7 @@ def process_order(content):
         g.session.add(d_order_obj)
         g.session.commit()
 
-    elif order['buy_amount'] < m_sell_amount:
+    elif order_obj.buy_amount < m_sell_amount:
         d_order_obj = Order(  sender_pk=m_sender_pk,
                             receiver_pk=m_receiver_pk, 
                             buy_currency=m_buy_currency, 
