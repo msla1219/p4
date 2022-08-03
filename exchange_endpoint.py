@@ -64,20 +64,18 @@ def verify(content):
         print(e)
 
         
-def process_order(content):
+def process_order(order):
 
-  #1. Insert new order
-
-    order_obj = Order(sender_pk=content['payload']['sender_pk'],
-                      receiver_pk=content['payload']['receiver_pk'], 
-                      buy_currency=content['payload']['buy_currency'], 
-                      sell_currency=content['payload']['sell_currency'], 
-                      buy_amount=content['payload']['buy_amount'], 
-                      sell_amount=content['payload']['sell_amount'], 
-                      exchange_rate=(content['payload']['buy_amount']/content['payload']['sell_amount']),
-                      signature=content['sig'])
-
-
+    #1. Insert new order
+    order_obj = Order(    sender_pk=order['sender_pk'],
+                          receiver_pk=order['receiver_pk'], 
+                          buy_currency=order['buy_currency'], 
+                          sell_currency=order['sell_currency'], 
+                          buy_amount=order['buy_amount'], 
+                          sell_amount=order['sell_amount'], 
+                          exchange_rate=(order['buy_amount']/order['sell_amount'])
+                      )
+    
 
     g.session.add(order_obj)
     g.session.commit()
@@ -206,7 +204,18 @@ def trade():
 
             #Note that you can access the database session using g.session
             if verify(content) is True: 
-                process_order(content)
+
+                order_obj = Order(sender_pk=content['payload']['sender_pk'],
+                                  receiver_pk=content['payload']['receiver_pk'], 
+                                  buy_currency=content['payload']['buy_currency'], 
+                                  sell_currency=content['payload']['sell_currency'], 
+                                  buy_amount=content['payload']['buy_amount'], 
+                                  sell_amount=content['payload']['sell_amount'], 
+                                  exchange_rate=(content['payload']['buy_amount']/content['payload']['sell_amount']),
+                                  signature=content['sig'])
+
+                process_order(order_obj)
+                
             else:
                 log_message(content)
 
