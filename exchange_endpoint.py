@@ -63,14 +63,27 @@ def verify(content):
         print(traceback.format_exc())
         print(e)
 
+        
 def fill_order(order,txes=[]):
     pass
-  
+
+
 def log_message(d):
     # Takes input dictionary d and writes it to the Log table
-    # Hint: use json.dumps or str() to get it in a nice string form
-    pass
 
+    payload = json.dumps(d['payload'])
+
+    try:
+        # Insert new log
+        log_obj = Log(message = json.dumps(d['payload']))
+
+        g.session.add(log_obj)
+        g.session.commit()
+
+    except Exception as e:
+        import traceback
+        print(traceback.format_exc())
+        print(e)
 """ End of helper methods """
 
 
