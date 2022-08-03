@@ -64,26 +64,26 @@ def verify(content):
         print(e)
 
         
-def process_order(order):
+def process_order(content):
 
     #1. Insert new order
-    order_obj = Order(  sender_pk=order['sender_pk'],
-                      receiver_pk=order['receiver_pk'], 
-                      buy_currency=order['buy_currency'], 
-                      sell_currency=order['sell_currency'], 
-                      buy_amount=order['buy_amount'], 
-                      sell_amount=order['sell_amount'], 
-                      exchange_rate=(order['buy_amount']/order['sell_amount'])
-                      )
-
+    
+    order_obj = Order(sender_pk=content['payload']['sender_pk'],
+                      receiver_pk=content['payload']['receiver_pk'], 
+                      buy_currency=content['payload']['buy_currency'], 
+                      sell_currency=content['payload']['sell_currency'], 
+                      buy_amount=content['payload']['buy_amount'], 
+                      sell_amount=content['payload']['sell_amount'], 
+                      exchange_rate=(content['payload']['buy_amount']/content['payload']['sell_amount']),
+                      signature=content['sig'])
 
     g.session.add(order_obj)
     g.session.commit()
 
     # check up if it works well and get the order id
     results = g.session.execute("select distinct id from orders where " + 
-                            " sender_pk = '" + str(order['sender_pk']) + "'" +
-                            " and receiver_pk = '" + str(order['receiver_pk']) + "'")
+                            " sender_pk = '" + str(order_obj.sender_pk) + "'" +
+                            " and receiver_pk = '" + str(order_obj.receiver_pk) + "'")
 
     order_id = results.first()['id']
     # print(" new order: ", order_id, order['buy_currency'], order['sell_currency'], order['buy_amount'], order['sell_amount'])
@@ -91,9 +91,9 @@ def process_order(order):
     #2. Matching order
     results = g.session.execute("select count(id) " + 
                             " from orders where orders.filled is null " + 
-                            " and orders.sell_currency = '" + order['buy_currency'] + "'" +
-                            " and orders.buy_currency = '" + order['sell_currency'] + "'" +
-                            " and exchange_rate <= " + str(order['sell_amount']/order['buy_amount']))
+                            " and orders.sell_currency = '" + order_obj.buy_currency + "'" +
+                            " and orders.buy_currency = '" + order_obj.sell_currency + "'" +
+                            " and exchange_rate <= " + str(order_obj.sell_amount/order_obj.buy_amount)
 
     if results.first()[0] == 0:
         # print("::::no matching order::::")
@@ -101,9 +101,9 @@ def process_order(order):
 
     results = g.session.execute("select distinct id, sender_pk, receiver_pk, buy_currency, sell_currency, buy_amount, sell_amount " + 
                             "from orders where orders.filled is null " + 
-                            " and orders.sell_currency = '" + order['buy_currency'] + "'" +
-                            " and orders.buy_currency = '" + order['sell_currency'] + "'" +
-                            " and exchange_rate <= " + str(order['sell_amount']/order['buy_amount'])) 
+                            " and orders.sell_currency = '" + order_obj.buy_currency + "'" +
+                            " and orders.buy_currency = '" + order_obj.sell_currency + "'" +
+                            " and exchange_rate <= " + str(order_obj.sell_amount/order_obj.buy_amount) 
 
     for row in results:
         m_order_id = row['id']
@@ -130,27 +130,27 @@ def process_order(order):
   
     #3. Create derived order
     if order['buy_amount'] > m_sell_amount:
-        order_obj = Order(  sender_pk=order['sender_pk'],
-                            receiver_pk=order['receiver_pk'], 
-                            buy_currency=order['buy_currency'], 
-                            sell_currency=order['sell_currency'], 
-                            buy_amount=order['buy_amount'] - m_sell_amount, 
-                            sell_amount=order['sell_amount'] - ((order['sell_amount']/order['buy_amount']) * m_sell_amount),
-                            exchange_rate = (order['buy_amount'] - m_sell_amount)/(order['sell_amount'] - ((order['sell_amount']/order['buy_amount']) * m_sell_amount)),
+        d_order_obj = Order(  sender_pk=order_obj.sender_pk,
+                            receiver_pk=order_obj.receiver_pk, 
+                            buy_currency=order_obj.buy_currency, 
+                            sell_currency=order_obj.sell_currency, 
+                            buy_amount=order_obj.buy_amount - m_sell_amount, 
+                            sell_amount=order_obj.sell_amount - ((order_obj.sell_amount/order_obj.buy_amount) * m_sell_amount),
+                            exchange_rate = (order_obj.buy_amount - m_sell_amount)/(order_obj.sell_amount - (order_obj.sell_amount/order_obj.buy_amount * m_sell_amount)),
                             creator_id=order_id)
-        g.session.add(order_obj)
+        g.session.add(d_order_obj)
         g.session.commit()
 
     elif order['buy_amount'] < m_sell_amount:
-        order_obj = Order(  sender_pk=m_sender_pk,
+        d_order_obj = Order(  sender_pk=m_sender_pk,
                             receiver_pk=m_receiver_pk, 
                             buy_currency=m_buy_currency, 
                             sell_currency=m_sell_currency, 
-                            buy_amount= m_buy_amount - (m_buy_amount/m_sell_amount) * order['buy_amount'], 
-                            sell_amount= m_sell_amount - order['buy_amount'],
-                            exchange_rate = (m_buy_amount - (m_buy_amount/m_sell_amount) * order['buy_amount'])/(m_sell_amount - order['buy_amount']),
+                            buy_amount= m_buy_amount - (m_buy_amount/m_sell_amount) * order_obj.buy_amount, 
+                            sell_amount= m_sell_amount - order_obj.buy_amount,
+                            exchange_rate = (m_buy_amount - (m_buy_amount/m_sell_amount) * order_obj.buy_amount)/(m_sell_amount - order_obj.buy_amount),
                             creator_id=m_order_id)
-        g.session.add(order_obj)
+        g.session.add(d_order_obj)
         g.session.commit()
 
 
@@ -204,18 +204,7 @@ def trade():
 
             #Note that you can access the database session using g.session
             if verify(content) is True: 
-
-                order_obj = Order(sender_pk=content['payload']['sender_pk'],
-                                  receiver_pk=content['payload']['receiver_pk'], 
-                                  buy_currency=content['payload']['buy_currency'], 
-                                  sell_currency=content['payload']['sell_currency'], 
-                                  buy_amount=content['payload']['buy_amount'], 
-                                  sell_amount=content['payload']['sell_amount'], 
-                                  exchange_rate=(content['payload']['buy_amount']/content['payload']['sell_amount']),
-                                  signature=content['sig'])
-
-                process_order(order_obj)
-                
+                process_order(content)
             else:
                 log_message(content)
 
