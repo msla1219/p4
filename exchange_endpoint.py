@@ -67,15 +67,15 @@ def verify(content):
 def process_order(order):
 
     #1. Insert new order
-    order_obj = Order(    sender_pk=order['sender_pk'],
-                          receiver_pk=order['receiver_pk'], 
-                          buy_currency=order['buy_currency'], 
-                          sell_currency=order['sell_currency'], 
-                          buy_amount=order['buy_amount'], 
-                          sell_amount=order['sell_amount'], 
-                          exchange_rate=(order['buy_amount']/order['sell_amount'])
+    order_obj = Order(  sender_pk=order['sender_pk'],
+                      receiver_pk=order['receiver_pk'], 
+                      buy_currency=order['buy_currency'], 
+                      sell_currency=order['sell_currency'], 
+                      buy_amount=order['buy_amount'], 
+                      sell_amount=order['sell_amount'], 
+                      exchange_rate=(order['buy_amount']/order['sell_amount'])
                       )
-    
+
 
     g.session.add(order_obj)
     g.session.commit()
