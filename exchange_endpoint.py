@@ -178,36 +178,45 @@ def log_message(d):
 
 @app.route('/trade', methods=['POST'])
 def trade():
-    print("In trade endpoint")
-    if request.method == "POST":
-        content = request.get_json(silent=True)
-        print( f"content = {json.dumps(content)}" )
-        columns = [ "sender_pk", "receiver_pk", "buy_currency", "sell_currency", "buy_amount", "sell_amount", "platform" ]
-        fields = [ "sig", "payload" ]
+    
+    try:
 
-        for field in fields:
-            if not field in content.keys():
-                print( f"{field} not received by Trade" )
-                print( json.dumps(content) )
+        print("In trade endpoint")
+        if request.method == "POST":
+            content = request.get_json(silent=True)
+            print( f"content = {json.dumps(content)}" )
+            columns = [ "sender_pk", "receiver_pk", "buy_currency", "sell_currency", "buy_amount", "sell_amount", "platform" ]
+            fields = [ "sig", "payload" ]
+
+            for field in fields:
+                if not field in content.keys():
+                    print( f"{field} not received by Trade" )
+                    print( json.dumps(content) )
+                    log_message(content)
+                    return jsonify( False )
+
+            for column in columns:
+                if not column in content['payload'].keys():
+                    print( f"{column} not received by Trade" )
+                    print( json.dumps(content) )
+                    log_message(content)
+                    return jsonify( False )
+
+            #Your code here
+
+            #Note that you can access the database session using g.session
+            if verify(content) is True: 
+                process_order(content)
+            else:
                 log_message(content)
-                return jsonify( False )
+
+            return jsonify( True )
         
-        for column in columns:
-            if not column in content['payload'].keys():
-                print( f"{column} not received by Trade" )
-                print( json.dumps(content) )
-                log_message(content)
-                return jsonify( False )
-            
-        #Your code here
-
-        #Note that you can access the database session using g.session
-        if verify(content) is True: 
-            process_order(content)
-        else:
-            log_message(content)
-
-        return jsonify( True )
+    except Exception as e:
+        import traceback
+        print(traceback.format_exc())
+        print(e)
+        
 
 @app.route('/order_book')
 def order_book():
