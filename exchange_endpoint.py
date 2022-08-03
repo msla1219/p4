@@ -83,9 +83,33 @@ def trade():
 
 @app.route('/order_book')
 def order_book():
-    #Your code here
-    #Note that you can access the database session using g.session
-    return jsonify(result)
+    try:
+        results = g.session.execute("select sender_pk, receiver_pk, buy_currency, sell_currency, buy_amount, sell_amount, signature " + 
+                            "from orders ")
+
+        result_list = list()
+        for row in results:
+            item = dict()
+            item['sender_pk'] = row['sender_pk']
+            item['receiver_pk'] = row['receiver_pk']
+            item['buy_currency'] = row['buy_currency']
+            item['sell_currency'] = row['sell_currency']
+            item['buy_amount'] = row['buy_amount']
+            item['sell_amount'] = row['sell_amount']
+            item['signature'] = row['signature']
+
+            result_list.append(item)
+
+        result = dict()
+        result['data'] = result_list
+
+        return jsonify(result)
+
+    except Exception as e:
+        import traceback
+        print(traceback.format_exc())
+        print(e)
+        
 
 if __name__ == '__main__':
     app.run(port='5002')
