@@ -30,9 +30,38 @@ def shutdown_session(response_or_exc):
 
 
 """ Suggested helper methods """
+def verify(content):
 
-def check_sig(payload,sig):
-    pass
+    try:
+
+        if content['payload']['platform'] == 'Ethereum':
+            eth_sk = content['sig']
+            eth_pk = content['payload']['sender_pk']
+
+            payload = json.dumps(content['payload'])
+            eth_encoded_msg = eth_account.messages.encode_defunct(text=payload)
+            recovered_pk = eth_account.Account.recover_message(eth_encoded_msg, signature=eth_sk)
+
+            # Check if signature is valid
+            if recovered_pk == eth_pk:
+                result = True
+            else:
+                result = False
+
+            return result           # bool value
+
+        if content['payload']['platform'] == 'Algorand':
+            algo_sig = content['sig']
+            algo_pk = content['payload']['sender_pk']
+            payload = json.dumps(content['payload'])
+            
+            result = algosdk.util.verify_bytes(payload.encode('utf-8'), algo_sig, algo_pk)
+            return result           # bool value 
+
+    except Exception as e:
+        import traceback
+        print(traceback.format_exc())
+        print(e)
 
 def fill_order(order,txes=[]):
     pass
