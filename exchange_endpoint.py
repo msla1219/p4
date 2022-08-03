@@ -93,7 +93,7 @@ def process_order(content):
                             " from orders where orders.filled is null " + 
                             " and orders.sell_currency = '" + order_obj.buy_currency + "'" +
                             " and orders.buy_currency = '" + order_obj.sell_currency + "'" +
-                            " and exchange_rate <= " + str(order_obj.sell_amount/order_obj.buy_amount)
+                            " and exchange_rate <= " + str(order_obj.sell_amount/order_obj.buy_amount))
 
     if results.first()[0] == 0:
         # print("::::no matching order::::")
